@@ -11,10 +11,10 @@ class TokenType:
     PLUS = "PLUS"
     MINUS = "MINUS"
     EOF = "EOF"  # Означає кінець вхідного рядка
-    # MUL = "MUL"
-    # DIV = "DIV"
-    # LPAREN = "("
-    # RPAREN = ")"
+    MUL = "MUL"
+    DIV = "DIV"
+    LPAREN = "("
+    RPAREN = ")"
 
 
 class Token:
@@ -71,21 +71,21 @@ class Lexer:
                 self.advance()
                 return Token(TokenType.MINUS, "-")
 
-            # if self.current_char == "*":
-            #     self.advance()
-            #     return Token(TokenType.MUL, "*")
+            if self.current_char == "*":
+                self.advance()
+                return Token(TokenType.MUL, "*")
 
-            # if self.current_char == "/":
-            #     self.advance()
-            #     return Token(TokenType.DIV, "/")
+            if self.current_char == "/":
+                self.advance()
+                return Token(TokenType.DIV, "/")
 
-            # if self.current_char == "(":
-            #     self.advance()
-            #     return Token(TokenType.LPAREN, "(")
+            if self.current_char == "(":
+                self.advance()
+                return Token(TokenType.LPAREN, "(")
 
-            # if self.current_char == ")":
-            #     self.advance()
-            #     return Token(TokenType.RPAREN, ")")
+            if self.current_char == ")":
+                self.advance()
+                return Token(TokenType.RPAREN, ")")
 
             raise LexicalError("Помилка лексичного аналізу")
 
@@ -128,20 +128,35 @@ class Parser:
             self.error()
 
     def term(self):
-        """Парсер для 'term' правил граматики. У нашому випадку - це цілі числа."""
-        token = self.current_token
-        self.eat(TokenType.INTEGER)
-        return Num(token)
-        # ; TODO: update term щоб він включав обробку множення та ділення
+        """Парсер для 'term' правил граматики. У нашому випадку - це цілі числа або вирази з множенням та діленням."""
+        node = self.factor()
+
+        while self.current_token.type in (TokenType.MUL, TokenType.DIV):
+            token = self.current_token
+            if token.type == TokenType.MUL:
+                self.eat(TokenType.MUL)
+            elif token.type == TokenType.DIV:
+                self.eat(TokenType.DIV)
+
+            node = BinOp(left=node, op=token, right=self.factor())
+
+        return node
 
     def expr(self):
         """Парсер для арифметичних виразів."""
         node = self.term()
-        # ; TODO: update expr для підтримки нової ієрархії операцій.
 
-        while self.current_token.type in (TokenType.PLUS, TokenType.MINUS):
+        while self.current_token.type in (TokenType.LPAREN, TokenType.RPAREN, TokenType.MUL, TokenType.DIV, TokenType.PLUS, TokenType.MINUS):
             token = self.current_token
-            if token.type == TokenType.PLUS:
+            if token.type == TokenType.LPAREN:
+                self.eat(TokenType.LPAREN)
+            elif token.type == TokenType.RPAREN:
+                self.eat(TokenType.RPAREN)
+            elif token.type == TokenType.MUL:
+                self.eat(TokenType.MUL)
+            elif token.type == TokenType.DIV:
+                self.eat(TokenType.DIV)
+            elif token.type == TokenType.PLUS:
                 self.eat(TokenType.PLUS)
             elif token.type == TokenType.MINUS:
                 self.eat(TokenType.MINUS)
@@ -151,7 +166,16 @@ class Parser:
         return node
 
     def factor(self):
-        pass #; TODO: add method для обробки чисел та виразів у дужках
+        """Парсер для 'factor' правил граматики. У нашому випадку - це цілі числа або вирази у дужках."""
+        token = self.current_token
+        if token.type == TokenType.INTEGER:
+            self.eat(TokenType.INTEGER)
+            return Num(token)
+        elif token.type == TokenType.LPAREN:
+            self.eat(TokenType.LPAREN)
+            node = self.expr()
+            self.eat(TokenType.RPAREN)
+            return node
 
 
 def print_ast(node, level=0):
@@ -178,7 +202,10 @@ class Interpreter:
             return self.visit(node.left) + self.visit(node.right)
         elif node.op.type == TokenType.MINUS:
             return self.visit(node.left) - self.visit(node.right)
-        # ; TODO: update visit_BinOp щоб він міг обробляти операції множення та ділення.
+        elif node.op.type == TokenType.MUL:
+            return self.visit(node.left) * self.visit(node.right)
+        elif node.op.type == TokenType.DIV:
+            return self.visit(node.left) / self.visit(node.right)
 
     def visit_Num(self, node):
         return node.value
