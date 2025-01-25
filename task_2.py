@@ -146,17 +146,9 @@ class Parser:
         """Парсер для арифметичних виразів."""
         node = self.term()
 
-        while self.current_token.type in (TokenType.LPAREN, TokenType.RPAREN, TokenType.MUL, TokenType.DIV, TokenType.PLUS, TokenType.MINUS):
+        while self.current_token.type in (TokenType.PLUS, TokenType.MINUS):
             token = self.current_token
-            if token.type == TokenType.LPAREN:
-                self.eat(TokenType.LPAREN)
-            elif token.type == TokenType.RPAREN:
-                self.eat(TokenType.RPAREN)
-            elif token.type == TokenType.MUL:
-                self.eat(TokenType.MUL)
-            elif token.type == TokenType.DIV:
-                self.eat(TokenType.DIV)
-            elif token.type == TokenType.PLUS:
+            if token.type == TokenType.PLUS:
                 self.eat(TokenType.PLUS)
             elif token.type == TokenType.MINUS:
                 self.eat(TokenType.MINUS)
